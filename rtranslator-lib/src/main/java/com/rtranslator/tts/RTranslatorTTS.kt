@@ -70,7 +70,8 @@ class RTranslatorTTS(private val context: Context) {
             } else {
                 continuation.resumeWithException(
                     RTranslatorException.TTSException(
-                        "Failed to initialize TTS engine. " +
+                        errorCode = TTSErrorCode.INITIALIZATION_FAILED.code,
+                        message = "Failed to initialize TTS engine. " +
                                 "Make sure Google TTS or a compatible TTS is installed."
                     )
                 )
@@ -101,7 +102,10 @@ class RTranslatorTTS(private val context: Context) {
         tts?.apply {
             setLanguage(language.locale)
             speak(text, queueMode, null, "RTranslatorTTS_${System.currentTimeMillis()}")
-        } ?: throw RTranslatorException.TTSException("TTS engine is not available")
+        } ?: throw RTranslatorException.TTSException(
+            errorCode = TTSErrorCode.ENGINE_NOT_AVAILABLE.code,
+            message = "TTS engine is not available"
+        )
     }
 
     /**
@@ -130,7 +134,10 @@ class RTranslatorTTS(private val context: Context) {
 
             override fun onError(utteranceId: String?) {
                 continuation.resumeWithException(
-                    RTranslatorException.TTSException("TTS speaking failed")
+                    RTranslatorException.TTSException(
+                        errorCode = TTSErrorCode.SPEAKING_FAILED.code,
+                        message = "TTS speaking failed"
+                    )
                 )
             }
         })
@@ -139,7 +146,10 @@ class RTranslatorTTS(private val context: Context) {
             setLanguage(language.locale)
             speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
         } ?: continuation.resumeWithException(
-            RTranslatorException.TTSException("TTS engine is not available")
+            RTranslatorException.TTSException(
+                errorCode = TTSErrorCode.ENGINE_NOT_AVAILABLE.code,
+                message = "TTS engine is not available"
+            )
         )
     }
 
@@ -177,7 +187,8 @@ class RTranslatorTTS(private val context: Context) {
     private fun checkInitialized() {
         if (!isInitialized || tts == null) {
             throw RTranslatorException.TTSException(
-                "TTS is not initialized. Call initialize() first."
+                errorCode = TTSErrorCode.NOT_INITIALIZED.code,
+                message = "TTS is not initialized. Call initialize() first."
             )
         }
     }

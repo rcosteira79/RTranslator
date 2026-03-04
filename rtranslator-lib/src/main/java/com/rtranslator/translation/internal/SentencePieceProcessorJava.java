@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package nie.translator.rtranslator.voice_translation.neural_networks.translation;
+package com.rtranslator.translation.internal;
 
-public class SentencePieceProcessorJava {
+// Package-private class - not visible to library users
+class SentencePieceProcessorJava {
     //specialTokens is an array containing the symbols that sentencepiece does not translate correctly (their index is equal to their ID)
     private final String[] specialTokens = {"<s>", "<pad>", "</s>", "<unk>"};
 

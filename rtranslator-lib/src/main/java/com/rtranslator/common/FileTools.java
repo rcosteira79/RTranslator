@@ -1,4 +1,4 @@
-package nie.translator.rtranslator.tools;
+package com.rtranslator.common;
 
 import android.content.Context;
 

@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package nie.translator.rtranslator.voice_translation.neural_networks.translation;
+package com.rtranslator.translation.internal;
 
 import java.util.Arrays;
 
-public class Tokenizer {
+// Package-private class - not visible to library users  
+class Tokenizer {
     public static final int NLLB = 0;
     public static final int NLLB_FIXED = 1;
     public static final int SEAMLESS = 2;

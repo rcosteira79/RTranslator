@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package nie.translator.rtranslator.tools;
+package com.rtranslator.common;
 
 public class ErrorCodes {
     //errors

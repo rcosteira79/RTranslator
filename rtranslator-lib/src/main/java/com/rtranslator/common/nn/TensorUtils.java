@@ -14,10 +14,8 @@
  * limitations under the License.
  */
 
-package nie.translator.rtranslator.tools.nn;
+package com.rtranslator.common.nn;
 
-import com.google.common.primitives.Floats;
-import com.google.common.primitives.Ints;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -36,6 +34,43 @@ import ai.onnxruntime.OrtSession;
 
 
 public final class TensorUtils {
+
+    /**
+     * Concatenates multiple float arrays into a single array.
+     * Replacement for Guava's Floats.concat().
+     */
+    private static float[] concatFloatArrays(float[]... arrays) {
+        int totalLength = 0;
+        for (float[] array : arrays) {
+            totalLength += array.length;
+        }
+        float[] result = new float[totalLength];
+        int offset = 0;
+        for (float[] array : arrays) {
+            System.arraycopy(array, 0, result, offset, array.length);
+            offset += array.length;
+        }
+        return result;
+    }
+
+    /**
+     * Concatenates multiple int arrays into a single array.
+     * Replacement for Guava's Ints.concat().
+     */
+    private static int[] concatIntArrays(int[]... arrays) {
+        int totalLength = 0;
+        for (int[] array : arrays) {
+            totalLength += array.length;
+        }
+        int[] result = new int[totalLength];
+        int offset = 0;
+        for (int[] array : arrays) {
+            System.arraycopy(array, 0, result, offset, array.length);
+            offset += array.length;
+        }
+        return result;
+    }
+
     public static OnnxTensor createIntTensor(OrtEnvironment env, int[] data, long[] shape) throws OrtException {
         long[] longData = Arrays.stream(data).mapToLong(i -> i).toArray();  //converts data into a long array
         OnnxTensor var10000 = null;
@@ -129,9 +164,9 @@ public final class TensorUtils {
     public static float[] flattenFloatArray(float[][][] data){
         float[][] dataFlatTemp = new float[data.length][data[0].length * data[0][0].length];
         for(int j=0; j<data.length; j++){
-            dataFlatTemp[j] = Floats.concat(data[j]);
+            dataFlatTemp[j] = concatFloatArrays(data[j]);
         }
-        return Floats.concat(dataFlatTemp);
+        return concatFloatArrays(dataFlatTemp);
     }
 
     public static float[] flattenFloatArray(float[][][][] data){
@@ -139,16 +174,16 @@ public final class TensorUtils {
         for(int j=0; j<data.length; j++){
             dataFlatTemp[j] = flattenFloatArray(data[j]);
         }
-        return Floats.concat(dataFlatTemp);
+        return concatFloatArrays(dataFlatTemp);
     }
 
     public static float[] flattenFloatArrayBatched(float[][] data, int batchSize){
-        float[] dataFlat = Floats.concat(data);
+        float[] dataFlat = concatFloatArrays(data);
         float[][] dataFlatBatchedInit = new float[batchSize][dataFlat.length];
         for (int i=0; i<batchSize; i++){
             dataFlatBatchedInit[i] = dataFlat;
         }
-        return Floats.concat(dataFlatBatchedInit);
+        return concatFloatArrays(dataFlatBatchedInit);
     }
 
     public static int[] flattenIntArrayBatched(int[] data, int batchSize){
@@ -156,7 +191,7 @@ public final class TensorUtils {
         for (int i=0; i<batchSize; i++){
             dataFlatBatchedInit[i] = data;
         }
-        return Ints.concat(dataFlatBatchedInit);
+        return concatIntArrays(dataFlatBatchedInit);
     }
 
     public static float[] flattenFloatArrayBatched(float[][][] data, int batchSize){
@@ -165,7 +200,7 @@ public final class TensorUtils {
         for (int j=0; j<batchSize; j++){
             keyValueFlatBatchedInit[j] = dataFlat;
         }
-        return Floats.concat(keyValueFlatBatchedInit);
+        return concatFloatArrays(keyValueFlatBatchedInit);
     }
 
     public static Object extractValue(OrtSession.Result result, String name) throws OrtException {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package nie.translator.rtranslator.tools.nn;
+package com.rtranslator.common.nn;
 
 import java.util.ArrayList;
 

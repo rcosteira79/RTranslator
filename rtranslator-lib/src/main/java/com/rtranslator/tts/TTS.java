@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package nie.translator.rtranslator.tools;
+package com.rtranslator.tts;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -24,6 +24,9 @@ import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 import android.speech.tts.Voice;
 import androidx.annotation.Nullable;
+
+import com.rtranslator.common.CustomLocale;
+import com.rtranslator.common.ErrorCodes;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -124,7 +127,7 @@ public class TTS {
 
     public int setLanguage(CustomLocale loc, Context context) {
         if (isActive()) {
-            return tts.setLanguage(new Locale(loc.getLocale().getLanguage()));
+            return tts.setLanguage(new Locale(loc.locale().getLanguage()));
         }
         return TextToSpeech.ERROR;
     }

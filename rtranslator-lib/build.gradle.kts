@@ -1,14 +1,14 @@
 plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
 }
 
 android {
     namespace = "com.rtranslator"
-    compileSdk = 34
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
-        minSdk = 24
+        minSdk = libs.versions.minSdk.get().toInt()
         
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -17,6 +17,7 @@ android {
             cmake {
                 cppFlags("")
                 abiFilters("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
+                arguments("-DCMAKE_POLICY_DEFAULT_CMP0057=NEW")
             }
         }
         
@@ -40,10 +41,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-    
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
@@ -52,26 +49,28 @@ android {
     }
 }
 
+kotlin {
+    jvmToolchain(17)
+}
+
 dependencies {
     // AndroidX Core
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.annotation:annotation:1.7.1")
-    
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.annotation)
+
     // Kotlin Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
     
     // ONNX Runtime for ML inference
-    api("com.microsoft.onnxruntime:onnxruntime-android:1.19.0")
-    api("com.microsoft.onnxruntime:onnxruntime-extensions-android:0.12.4")
+    implementation(libs.onnxruntime.android)
+    implementation(libs.onnxruntime.extensions.android)
     
-    // ML Kit for language identification (optional)
-    implementation("com.google.mlkit:language-id:17.0.5")
-    
+    // ML Kit for language identification
+    implementation(libs.mlkit.language.id)
+
     // Testing
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
 

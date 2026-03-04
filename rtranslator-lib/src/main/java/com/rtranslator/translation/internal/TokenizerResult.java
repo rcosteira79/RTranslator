@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package nie.translator.rtranslator.voice_translation.neural_networks.translation;
+package com.rtranslator.translation.internal;
 
 public class TokenizerResult {
     private int[] inputIDs;

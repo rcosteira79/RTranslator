@@ -20,53 +20,37 @@ package com.rtranslator.common
  * Base exception for all RTranslator errors.
  */
 sealed class RTranslatorException(
+    val errorCode: Int,
     message: String,
     cause: Throwable? = null
-) : Exception(message, cause) {
+) : Exception("Error $errorCode: $message", cause) {
 
-    /**
-     * Exception thrown when the translator is not initialized.
-     */
-    class NotInitializedException(
-        message: String = "Translator is not initialized. Call initialize() first."
-    ) : RTranslatorException(message)
+    class ConnectionException(errorCode: Int, message: String) : RTranslatorException(errorCode, message)
 
-    /**
-     * Exception thrown when model files are missing or corrupted.
-     */
-    class ModelNotFoundException(
-        message: String = "Translation model files not found. Please download them first."
-    ) : RTranslatorException(message)
+    class ConfigurationException(errorCode: Int, message: String) : RTranslatorException(errorCode, message)
 
-    /**
-     * Exception thrown when a language is not supported.
-     */
-    class LanguageNotSupportedException(
-        language: Language,
-        message: String = "Language ${language.code} is not supported for translation."
-    ) : RTranslatorException(message)
+    class ServiceException(errorCode: Int, message: String) : RTranslatorException(errorCode, message)
 
-    /**
-     * Exception thrown when translation fails during execution.
-     */
-    class TranslationFailedException(
-        message: String = "Translation failed during execution.",
-        cause: Throwable? = null
-    ) : RTranslatorException(message, cause)
+    class TTSException(errorCode: Int, message: String, cause: Throwable? = null) :
+        RTranslatorException(errorCode, message, cause)
 
-    /**
-     * Exception thrown when there's not enough memory to perform translation.
-     */
-    class OutOfMemoryException(
-        message: String = "Not enough memory to perform translation. Consider releasing resources."
-    ) : RTranslatorException(message)
+    class ModelException(errorCode: Int, message: String) : RTranslatorException(errorCode, message)
 
-    /**
-     * Exception thrown when TTS is not available or fails.
-     */
-    class TTSException(
-        message: String,
-        cause: Throwable? = null
-    ) : RTranslatorException(message, cause)
+    class LanguageException(errorCode: Int, message: String) : RTranslatorException(errorCode, message)
+
+    class GenericException(errorCode: Int, message: String = "An unknown error occurred.", cause: Throwable? = null) :
+        RTranslatorException(errorCode, message, cause)
+
+    // Internal library states (not necessarily from ErrorCodes.java)
+    class NotInitializedException(message: String = "Translator is not initialized.") :
+        RTranslatorException(-1, message)
+
+    class OutOfMemoryException(message: String = "Not enough memory to perform translation.") :
+        RTranslatorException(-2, message)
+
+    class RecognitionException(errorCode: Int, message: String, cause: Throwable? = null) :
+        RTranslatorException(errorCode, message, cause)
+
+    class PermissionDeniedException(val permission: String, message: String) :
+        RTranslatorException(-3, message)
 }
-

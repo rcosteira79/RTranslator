@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package nie.translator.rtranslator.voice_translation.neural_networks;
+package com.rtranslator.translation.internal;
 
+import com.rtranslator.common.CustomLocale;
 import java.io.Serializable;
-import nie.translator.rtranslator.tools.CustomLocale;
 
 public class NeuralNetworkApiText implements Serializable {
     private String text;

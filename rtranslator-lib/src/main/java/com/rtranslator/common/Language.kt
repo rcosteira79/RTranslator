@@ -36,7 +36,7 @@ data class Language(
          * The display name will be auto-generated from the locale.
          */
         fun fromCode(code: String): Language {
-            val locale = Locale(code)
+            val locale = Locale.forLanguageTag(code)
             return Language(
                 code = code,
                 displayName = locale.displayLanguage,
@@ -56,6 +56,17 @@ data class Language(
             )
         }
 
+        /**
+         * Creates a Language from a Locale.
+         */
+        fun fromLocale(locale: Locale): Language {
+            return Language(
+                code = locale.language,
+                displayName = locale.displayLanguage,
+                locale = locale
+            )
+        }
+
         // Common languages for convenience
         val ENGLISH = fromCode("en")
         val SPANISH = fromCode("es")
@@ -63,6 +74,7 @@ data class Language(
         val GERMAN = fromCode("de")
         val ITALIAN = fromCode("it")
         val PORTUGUESE = fromCode("pt")
+        val POLISH = fromCode("pl")
         val CHINESE = fromCode("zh")
         val JAPANESE = fromCode("ja")
         val KOREAN = fromCode("ko")

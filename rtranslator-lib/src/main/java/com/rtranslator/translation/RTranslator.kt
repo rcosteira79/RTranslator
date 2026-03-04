@@ -17,13 +17,24 @@
 package com.rtranslator.translation
 
 import android.content.Context
+import android.util.Log
+import androidx.annotation.WorkerThread
+import com.rtranslator.common.CustomLocale
+import com.rtranslator.common.ErrorCodes
+import com.rtranslator.common.ErrorMapper
 import com.rtranslator.common.Language
 import com.rtranslator.common.RTranslatorException
+import com.rtranslator.translation.internal.NeuralNetworkApi
+import com.rtranslator.translation.internal.NeuralNetworkApiText
+import com.rtranslator.translation.internal.Translator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.io.File
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * Main API for RTranslator - Offline Neural Machine Translation Library.
@@ -69,11 +80,12 @@ class RTranslator(
     private val context: Context,
     private val config: TranslationConfig = TranslationConfig()
 ) {
+    private lateinit var translator: Translator
 
-    // TODO: Wire up to actual Translator.java implementation
-    // For now, this is the API surface. Implementation will be added in next phase.
-
-    private var isInitialized = false
+    /**
+     * The directory where model files are stored.
+     * Useful for downloading models to the correct location.
+     */
     private val modelsDirectory: File
         get() = context.filesDir
 
@@ -83,39 +95,71 @@ class RTranslator(
      *
      * @throws RTranslatorException.ModelNotFoundException if models cannot be loaded
      */
-    suspend fun initialize() = withContext(Dispatchers.IO) {
-        if (isInitialized) return@withContext
+    @WorkerThread
+    suspend fun initialize() = suspendCancellableCoroutine { continuation ->
+        if (isReady()) {
+            Log.d("RTranslator", "Translator already initialized")
+            continuation.resume(Unit)
+            return@suspendCancellableCoroutine
+        }
 
-        // Check if model files exist
-        val requiredModels = listOf(
+        // Check if downloaded model files exist (sentencepiece_bpe.model is in assets, not downloaded)
+        val requiredDownloadedModels = listOf(
             "NLLB_encoder.onnx",
             "NLLB_decoder.onnx",
             "NLLB_embed_and_lm_head.onnx",
-            "NLLB_cache_initializer.onnx",
-            "sentencepiece_bpe.model"
+            "NLLB_cache_initializer.onnx"
         )
 
-        val missingModels = requiredModels.filter { modelName ->
+        val missingModels = requiredDownloadedModels.filter { modelName ->
             !File(modelsDirectory, modelName).exists()
         }
 
         if (missingModels.isNotEmpty()) {
-            throw RTranslatorException.ModelNotFoundException(
-                "Missing model files: ${missingModels.joinToString(", ")}. " +
-                        "Please download them first."
+            Log.e("RTranslator", "Missing model files: ${missingModels.joinToString(", ")}")
+            continuation.resumeWithException(
+                RTranslatorException.ModelException(
+                    errorCode = ErrorCodes.ERROR_LOADING_MODEL,
+                    message = "Missing model files: ${missingModels.joinToString(", ")}. " +
+                            "Please download them first."
+                )
             )
+            return@suspendCancellableCoroutine
         }
 
-        // TODO: Initialize actual Translator
-        // translator = Translator(context, Translator.NLLB_CACHE, ...)
+        Log.d("RTranslator", "All model files present, creating Translator instance...")
 
-        isInitialized = true
+        translator = Translator(
+            context,
+            Translator.NLLB_CACHE,
+            object : NeuralNetworkApi.InitListener {
+                override fun onInitializationFinished() {
+                    // Initialization completed successfully
+                    Log.d("RTranslator", "Translator initialization finished successfully")
+                    continuation.resume(Unit)
+                }
+
+                override fun onError(reasons: IntArray?, value: Long) {
+                    // Initialization failed
+                    Log.e(
+                        "RTranslator",
+                        "Translator initialization failed with error code: ${reasons?.firstOrNull()}"
+                    )
+                    continuation.resumeWithException(
+                        RTranslatorException.ModelException(
+                            errorCode = reasons?.firstOrNull() ?: ErrorCodes.ERROR_LOADING_MODEL,
+                            message = "Failed to initialize translator"
+                        )
+                    )
+                }
+            }
+        )
     }
 
     /**
      * Check if the translator is initialized and ready to use.
      */
-    fun isReady(): Boolean = isInitialized
+    fun isReady(): Boolean = ::translator.isInitialized
 
     /**
      * Translate text from one language to another.
@@ -134,38 +178,51 @@ class RTranslator(
         text: String,
         from: Language,
         to: Language,
-        beamSize: Int? = null
-    ): TranslationResult = withContext(Dispatchers.Default) {
+        beamSize: Int = 5
+    ): TranslationResult = suspendCancellableCoroutine { continuation ->
         checkInitialized()
 
         // If same language, return as-is
         if (from == to) {
-            return@withContext TranslationResult(
-                originalText = text,
-                translatedText = text,
-                sourceLanguage = from,
-                targetLanguage = to,
-                isFinal = true,
-                translationTimeMs = 0
-            )
+            return@suspendCancellableCoroutine continuation.resume(
+                TranslationResult(
+                    originalText = text,
+                    translatedText = text,
+                    sourceLanguage = from,
+                    targetLanguage = to,
+                    isFinal = true,
+                    translationTimeMs = 0
+                )
+            ) { _, _, _ -> }
         }
 
         val startTime = System.currentTimeMillis()
+        val originalLocale = CustomLocale(from.locale)
 
-        // TODO: Wire up to actual translation
-        // val translatedText = translator.performTextTranslation(...)
+        translator.translateMessage(
+            NeuralNetworkApiText(text, originalLocale),
+            CustomLocale(to.locale),
+            beamSize,
+            object : Translator.TranslateMessageListener {
+                override fun onFailure(reasons: IntArray?, value: Long) {
+                    continuation.resumeWithException(ErrorMapper.fromErrorCode(errorCode = reasons?.first() ?: -1))
+                }
 
-        val translatedText = "[TRANSLATED] $text" // Placeholder
+                override fun onTranslatedMessage(message: NeuralNetworkApiText, messageID: Long, isFinal: Boolean) {
+                    val endTime = System.currentTimeMillis()
 
-        val endTime = System.currentTimeMillis()
-
-        TranslationResult(
-            originalText = text,
-            translatedText = translatedText,
-            sourceLanguage = from,
-            targetLanguage = to,
-            isFinal = true,
-            translationTimeMs = endTime - startTime
+                    continuation.resume(
+                        TranslationResult(
+                            originalText = text,
+                            translatedText = message.text,
+                            sourceLanguage = from,
+                            targetLanguage = to,
+                            isFinal = isFinal,
+                            translationTimeMs = endTime - startTime
+                        )
+                    )
+                }
+            }
         )
     }
 
@@ -203,7 +260,7 @@ class RTranslator(
 
         // TODO: Wire up streaming translation
         // For now, just emit final result
-        val result = translate(text, from, to, beamSize)
+        val result = translate(text, from, to, beamSize ?: 1)
         emit(result)
     }
 
@@ -218,11 +275,12 @@ class RTranslator(
         // For now, return common languages
         listOf(
             Language.ENGLISH,
+            Language.PORTUGUESE,
+            Language.POLISH,
             Language.SPANISH,
             Language.FRENCH,
             Language.GERMAN,
             Language.ITALIAN,
-            Language.PORTUGUESE,
             Language.CHINESE,
             Language.JAPANESE,
             Language.KOREAN,
@@ -244,41 +302,26 @@ class RTranslator(
     }
 
     /**
-     * Get the models directory path.
-     * Useful for downloading models to the correct location.
-     */
-    fun getModelsDirectory(): File = modelsDirectory
-
-    /**
      * Check if all required model files are present.
      *
      * @return true if all models are downloaded, false otherwise
      */
     fun areModelsDownloaded(): Boolean {
-        val requiredModels = listOf(
+        // Only check downloaded models (sentencepiece_bpe.model is in assets, not downloaded)
+        val requiredDownloadedModels = listOf(
             "NLLB_encoder.onnx",
             "NLLB_decoder.onnx",
             "NLLB_embed_and_lm_head.onnx",
-            "NLLB_cache_initializer.onnx",
-            "sentencepiece_bpe.model"
+            "NLLB_cache_initializer.onnx"
         )
 
-        return requiredModels.all { modelName ->
+        return requiredDownloadedModels.all { modelName ->
             File(modelsDirectory, modelName).exists()
         }
     }
 
-    /**
-     * Close the translator and release resources.
-     * Call this when you're done using the translator to free memory.
-     */
-    fun close() {
-        // TODO: Close actual Translator and release native resources
-        isInitialized = false
-    }
-
     private fun checkInitialized() {
-        if (!isInitialized) {
+        if (!isReady()) {
             throw RTranslatorException.NotInitializedException()
         }
     }
@@ -295,4 +338,3 @@ class RTranslator(
         const val MIN_REQUIRED_RAM_MB = 6000 // 6GB
     }
 }
-

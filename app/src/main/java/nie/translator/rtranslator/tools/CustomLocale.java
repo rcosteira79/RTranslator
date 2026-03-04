@@ -29,7 +29,7 @@ import nie.translator.rtranslator.Global;
 
 public class CustomLocale implements Comparable<CustomLocale>, Serializable {
     @NonNull
-    private Locale locale;
+    private final Locale locale;
 
     public CustomLocale(String language, String country, String variant) {
         locale = new Locale(language, country, variant);

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package nie.translator.rtranslator.voice_translation.neural_networks;
+package com.rtranslator.translation.internal;
 
 import androidx.annotation.NonNull;
 
@@ -24,12 +24,12 @@ import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 import ai.onnxruntime.extensions.OrtxPackage;
-import nie.translator.rtranslator.Global;
-import nie.translator.rtranslator.tools.ErrorCodes;
 
+import com.rtranslator.common.ErrorCodes;
+
+// Package-private class - not visible to library users
 public class NeuralNetworkApi {
-    protected Global global;
-    private ArrayList<Thread> pendingThreads= new ArrayList<>();
+    private ArrayList<Thread> pendingThreads = new ArrayList<>();
     public static boolean isVerifying = false;
 
     protected void addPendingThread(Thread thread){
@@ -49,13 +49,7 @@ public class NeuralNetworkApi {
         try {
             isVerifying = true;
             OrtEnvironment onnxEnv = OrtEnvironment.getEnvironment();
-            OrtSession.SessionOptions testOptions = new OrtSession.SessionOptions();
-            testOptions.registerCustomOpLibrary(OrtxPackage.getLibraryPath());
-            testOptions.setMemoryPatternOptimization(false);
-            testOptions.setCPUArenaAllocator(false);
-            if(!testModelPath.contains("detokenizer.onnx")) {   //for Whisper_detokenizer.onnx we test with OnnxRuntime optimization because we it that way in the Recognizer
-                testOptions.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT);
-            }
+            OrtSession.SessionOptions testOptions = getSessionOptions(testModelPath);
             OrtSession testSession = onnxEnv.createSession(testModelPath, testOptions);
             testSession.close();
             isVerifying = false;
@@ -65,6 +59,17 @@ public class NeuralNetworkApi {
             isVerifying = false;
             initListener.onError(new int[]{ErrorCodes.ERROR_LOADING_MODEL},0);
         }
+    }
+
+    private static @NonNull OrtSession.SessionOptions getSessionOptions(@NonNull String testModelPath) throws OrtException {
+        OrtSession.SessionOptions testOptions = new OrtSession.SessionOptions();
+        testOptions.registerCustomOpLibrary(OrtxPackage.getLibraryPath());
+        testOptions.setMemoryPatternOptimization(false);
+        testOptions.setCPUArenaAllocator(false);
+        if(!testModelPath.contains("detokenizer.onnx")) {   //for Whisper_detokenizer.onnx we test with OnnxRuntime optimization because we it that way in the Recognizer
+            testOptions.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT);
+        }
+        return testOptions;
     }
 
     public interface InitListener{

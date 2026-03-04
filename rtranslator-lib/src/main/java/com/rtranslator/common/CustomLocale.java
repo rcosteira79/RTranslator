@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package nie.translator.rtranslator.tools;
+package com.rtranslator.common;
 
 import android.text.TextUtils;
 import androidx.annotation.NonNull;
@@ -25,26 +25,17 @@ import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Set;
 
-import nie.translator.rtranslator.Global;
-
-public class CustomLocale implements Comparable<CustomLocale>, Serializable {
-    @NonNull
-    private Locale locale;
-
+public record CustomLocale(@NonNull Locale locale) implements Comparable<CustomLocale>, Serializable {
     public CustomLocale(String language, String country, String variant) {
-        locale = new Locale(language, country, variant);
+        this(new Locale(language, country, variant));
     }
 
     public CustomLocale(String languageCode, String countryCode) {
-        locale = new Locale(languageCode, countryCode);
+        this(new Locale(languageCode, countryCode));
     }
 
-    public CustomLocale(String languageCode){
-        locale = new Locale(languageCode);
-    }
-
-    public CustomLocale(@NonNull Locale locale) {
-        this.locale = locale;
+    public CustomLocale(String languageCode) {
+        this(new Locale(languageCode));
     }
 
     public static CustomLocale getInstance(String code) {
@@ -157,7 +148,7 @@ public class CustomLocale implements Comparable<CustomLocale>, Serializable {
 
     public String getDisplayName(ArrayList<CustomLocale> ttsLanguages) {
         String name = locale.getDisplayName();
-        name = name.substring(0,1).toUpperCase(locale) + name.substring(1);  //we convert the first letter to uppercase
+        name = name.substring(0, 1).toUpperCase(locale) + name.substring(1);  //we convert the first letter to uppercase
         if (containsLanguage(ttsLanguages, CustomLocale.getInstance(locale.getLanguage()))) {
             return name;
         } else {
@@ -167,7 +158,7 @@ public class CustomLocale implements Comparable<CustomLocale>, Serializable {
 
     public String getDisplayNameWithoutTTS() {
         String name = locale.getDisplayName();
-        return name.substring(0,1).toUpperCase(locale) + name.substring(1);  //we convert the first letter to uppercase
+        return name.substring(0, 1).toUpperCase(locale) + name.substring(1);  //we convert the first letter to uppercase
     }
 
     public String getDisplayName(Locale locale) {
@@ -239,7 +230,8 @@ public class CustomLocale implements Comparable<CustomLocale>, Serializable {
         return index;
     }
 
-    public Locale getLocale() {
+    @Override
+    public Locale locale() {
         return locale;
     }
 
